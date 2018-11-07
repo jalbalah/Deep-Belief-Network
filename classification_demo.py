@@ -1,5 +1,7 @@
-import numpy as np
 
+
+import pickle
+import numpy as np
 np.random.seed(1337)  # for reproducibility
 from sklearn.datasets import load_digits
 from sklearn.model_selection import train_test_split
@@ -32,3 +34,4 @@ classifier.fit(X_train, Y_train)
 # Test
 Y_pred = classifier.predict(X_test)
 print('Done.\nAccuracy: %f' % accuracy_score(Y_test, Y_pred))
+

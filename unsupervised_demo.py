@@ -1,37 +1,19 @@
-"""
-==============================================================
-Deep Belief Network features for digit classification
-==============================================================
 
-Adapted from http://scikit-learn.org/stable/auto_examples/neural_networks/plot_rbm_logistic_classification.html#sphx-glr-auto-examples-neural-networks-plot-rbm-logistic-classification-py
 
-This example shows how to build a classification pipeline with a UnsupervisedDBN
-feature extractor and a :class:`LogisticRegression
-<sklearn.linear_model.LogisticRegression>` classifier. The hyperparameters
-of the entire model (learning rate, hidden layer size, regularization)
-were optimized by grid search, but the search is not reproduced here because
-of runtime constraints.
-
-Logistic regression on raw pixel values is presented for comparison. The
-example shows that the features extracted by the UnsupervisedDBN help improve the
-classification accuracy.
-"""
-
-from __future__ import print_function
-
-print(__doc__)
-
+import pickle
 import numpy as np
-
 from scipy.ndimage import convolve
 from sklearn import linear_model, datasets, metrics
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
-from dbn.models import UnsupervisedDBN # use "from dbn.tensorflow import SupervisedDBNClassification" for computations on TensorFlow
+
+from dbn.models import UnsupervisedDBN 
 
 
-###############################################################################
-# Setting up
+n_epochs_rbm = 1   # 20
+logistic_inverse_reg = 50.0  # 6000.0
+logistic_inverse_reg_2 = 1   # 100.0
+
 
 def nudge_dataset(X, Y):
     """
@@ -74,40 +56,38 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y,
                                                     random_state=0)
 
 # Models we will use
-logistic = linear_model.LogisticRegression()
+logistic = linear_model.LogisticRegression(solver='newton-cg',
+                                           multi_class='auto',
+                                           C=logistic_inverse_reg)
 dbn = UnsupervisedDBN(hidden_layers_structure=[256, 512],
                       batch_size=10,
                       learning_rate_rbm=0.06,
-                      n_epochs_rbm=20,
+                      n_epochs_rbm=n_epochs_rbm,
                       activation_function='sigmoid')
 
 classifier = Pipeline(steps=[('dbn', dbn),
                              ('logistic', logistic)])
 
-###############################################################################
-# Training
-logistic.C = 6000.0
-
-# Training RBM-Logistic Pipeline
+# Training RBM-logistic pipeline
 classifier.fit(X_train, Y_train)
 
-# Training Logistic regression
-logistic_classifier = linear_model.LogisticRegression(C=100.0)
+# Training logistic regression
+logistic_classifier = linear_model.LogisticRegression(solver='newton-cg',
+                                                      multi_class='auto',
+                                                      C=logistic_inverse_reg_2)
 logistic_classifier.fit(X_train, Y_train)
-logistic_classifier.save('model.pkl')
 
-###############################################################################
+# Save model
+with open('logistic.pkl', 'wb') as wf:
+    pickle.dump(classifier, wf)
+
 # Evaluation
-
-print()
-print("Logistic regression using RBM features:\n%s\n" % (
+print("\nLogistic regression using RBM features:\n%s\n" % (
     metrics.classification_report(
         Y_test,
         classifier.predict(X_test))))
-
 print("Logistic regression using raw pixel features:\n%s\n" % (
     metrics.classification_report(
         Y_test,
         logistic_classifier.predict(X_test))))
 
-###############################################################################
